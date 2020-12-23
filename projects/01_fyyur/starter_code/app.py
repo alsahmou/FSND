@@ -12,6 +12,7 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+from constants import state_choices, genre_choices
 from flask_migrate import Migrate
 
 #----------------------------------------------------------------------------#
@@ -200,7 +201,6 @@ class Show(db.Model):
     artist_id = db.Column(db.Integer, db.ForeignKey('artists.id'), nullable=False)
     venue_id = db.Column(db.Integer, db.ForeignKey('venues.id'), nullable=False)
     start_time = db.Column(db.DateTime(), nullable=False)
-
 
 #----------------------------------------------------------------------------#
 # Filters.
@@ -586,14 +586,39 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-  # called upon submitting the new artist listing form
-  # TODO: insert form data as a new Venue record in the db, instead
-  # TODO: modify data to be the data object returned from db insertion
-
-  # on successful db insert, flash success
-  flash('Artist ' + request.form['name'] + ' was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
+  error = False
+  form = ArtistForm()
+  try:
+    name = form.name.data
+    if(db.session.query(Artist.name).filter_by(name=name).scalar() is not None):
+      flash('The artist : "'+ name+'" already exists', 'error')
+      return render_template('forms/new_artist.html', form=form)
+    form.validate()
+    if(len(form.phone.errors)>0):
+      flash(','.join(form.phone.errors))
+      return render_template('forms/new_artist.html', form=form)
+    artist = Artist()
+    artist.name = name
+    artist.city = form.city.data
+    artist.state = form.state.data
+    artist.phone = format_phone(form.phone.data)
+    artist.genres = ','.join(request.form.getlist('genres'))
+    artist.facebook_link = form.facebook_link.data
+    artist.website = form.website.data
+    artist.image_link = form.image_link.data
+    artist.seeking_venues = form.seeking_venues.data
+    artist.seeking_description = form.seeking_description.data
+    db.session.add(artist)
+    db.session.commit()
+  except Exception as e:
+    error = True
+    db.session.rollback()
+  finally:
+    db.session.close()
+  if error:
+    flash('An error occured. artist ' +request.form['name'] + ' Could not be listed.', 'error')
+  else:
+    flash('Artist ' + request.form['name'] +' was successfully listed.')
   return render_template('pages/home.html')
 
 

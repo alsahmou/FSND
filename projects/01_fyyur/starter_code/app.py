@@ -13,6 +13,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
+
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -22,8 +23,6 @@ moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-
 
 #----------------------------------------------------------------------------#
 # Validators.
@@ -49,6 +48,7 @@ def format_phone(phone):
   return phone
 
 app.jinja_env.filters['datetime'] = format_datetime
+
 
 #----------------------------------------------------------------------------#
 # Models.

@@ -5,7 +5,7 @@
 import json
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import Flask, render_template, request, Response, flash, redirect, url_for, make_response, jsonify
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -330,14 +330,25 @@ def create_venue_submission():
 
   return render_template('pages/home.html')
 
-@app.route('/venues/<venue_id>', methods=['DELETE'])
+@app.route('/venues/<venue_id>/Delete', methods=['GET'])
 def delete_venue(venue_id):
-  # TODO: Complete this endpoint for taking a venue_id, and using
-  # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
-
-  # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
-  # clicking that button delete it from the db then redirect the user to the homepage
-  return None
+  error = False 
+  print('Deleting venue')
+  try:  
+    venue = Venue.query.get(venue_id)
+    db.session.delete(venue)
+    db.session.commit()
+  except:
+    error=True
+    db.session.rollback()
+  finally:
+    db.session.close()
+  if error:
+    flash('An error occured. Venue ' +str(venue_id) + ' Could not be listed.', 'error')
+    return redirect(url_for('venues'))
+  else:
+    flash('Venue ' + str(venue_id) +' was successfully deleted.')
+    return redirect(url_for('venues'))
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -480,8 +491,6 @@ def create_artist_submission():
 @app.route('/shows')
 def shows():
   # displays list of shows at /shows
-  # TODO: replace with real venues data.
-  #       num_shows should be aggregated based on number of upcoming shows per venue.
   data=[]
   shows = Show.query.order_by(db.desc(Show.start_time)).all()
   for show in shows:

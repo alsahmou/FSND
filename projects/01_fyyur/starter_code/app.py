@@ -24,6 +24,32 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
+
+#----------------------------------------------------------------------------#
+# Validators.
+#----------------------------------------------------------------------------#
+
+def format_datetime(value, format='medium'):
+  date = dateutil.parser.parse(value)
+  
+  if format == 'full':
+      format="EEEE MMMM, d, y 'at' h:mma"
+  elif format == 'medium':
+      format="EE MM, dd, y h:mma"
+  try:
+      returnedDate = babel.dates.format_datetime(date, format, locale='en')
+  except:
+      returnedDate = str(date)
+  return returnedDate
+
+def format_phone(phone):
+  phone=phone.replace('-','')
+  if(len(phone)==10):
+    phone = phone[:3] +'-' +phone[3:6]+'-'+phone[6:]
+  return phone
+
+app.jinja_env.filters['datetime'] = format_datetime
+
 #----------------------------------------------------------------------------#
 # Models.
 #----------------------------------------------------------------------------#
@@ -346,15 +372,15 @@ def create_venue_submission():
       flash('The venue : "'+ name+'" already exists', 'error')
       return render_template('forms/new_venue.html', form=form)
     form.validate()
-    if(len(form.phone_number.errors)>0):
-      flash(','.join(form.phone_number.errors))
+    if(len(form.phone.errors)>0):
+      flash(','.join(form.phone.errors))
       return render_template('forms/new_venue.html', form=form)
     venue = Venue()
     venue.name = name
     venue.city = form.city.data
     venue.state = form.state.data
     venue.address = form.address.data
-    venue.phone_number = format_phone_number(form.phone_number.data)
+    venue.phone = format_phone(form.phone.data)
     venue.genres = ','.join(request.form.getlist('genres'))
     venue.facebook_link = form.facebook_link.data
     venue.website = form.website.data
@@ -365,6 +391,7 @@ def create_venue_submission():
     db.session.commit()
   except Exception as e:
     error = True
+    print('Error in creating venue', e)
     db.session.rollback()
   finally:
     db.session.close()

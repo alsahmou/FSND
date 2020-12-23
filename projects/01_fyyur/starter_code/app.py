@@ -230,30 +230,32 @@ def index():
 
 @app.route('/venues')
 def venues():
-  # TODO: replace with real venues data.
-  #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
-  return render_template('pages/venues.html', areas=data);
+  cities_dict = {}
+  data = []
+  venues_list = Venue.query.all()
+  
+  for venue in venues_list:
+    city_state = venue.city+'$split$'+venue.state
+    if city_state in cities_dict:
+      cities_dict[city_state].append(venue)
+    else:
+      cities_dict[city_state] = [venue]
+
+  for city in cities_dict:
+    entry = {}
+    city_state = city.split('$split$')
+    entry['city'] = city_state[0]
+    entry['state'] = city_state[1]
+    entry['venues'] = []
+    for venue in cities_dict[city]:
+      venue_dict = {}
+      venue_dict['id'] = venue.id
+      venue_dict['name'] = venue.name
+      venue_dict['num_upcoming_shows'] = venue.num_upcoming_shows()
+      entry['venues'].append(venue)
+    data.append(entry)
+
+  return render_template('pages/venues.html', areas=data)
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -670,20 +672,33 @@ def shows():
 
 @app.route('/shows/create')
 def create_shows():
-  # renders form. do not touch.
+  artists_ids = [(artist.id,artist.name+' (id:'+str(artist.id)+')') for artist in Artist.query.all()]
+  venues_ids = [(venue.id,venue.name+' (id:'+str(venue.id)+')') for venue in Venue.query.all()]
   form = ShowForm()
-  return render_template('forms/new_show.html', form=form)
+  form.venue_id.choices = venues_ids
+  form.artist_id.choices = artists_ids
+  return render_template('forms/new_show.html', form=form , data={'artists_ids':artists_ids,'venues_ids':venues_ids})
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-  # called to create new shows in the db, upon submitting new show listing form
-  # TODO: insert form data as a new Show record in the db, instead
-
-  # on successful db insert, flash success
-  flash('Show was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Show could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+  error = False
+  try:
+    show = Show()
+    show.start_time = request.form['start_time']
+    show.venue_id = request.form['venue_id']
+    show.artist_id = request.form['artist_id']
+    db.session.add(show)
+    db.session.commit()
+  except Exception as e:
+    error = True
+    print(e)
+    db.session.rollback()
+  finally:
+    db.session.close()
+  if error:
+    flash('An error occured. show starting at ' +request.form['start_time'] + ' Could not be listed.', 'error')
+  else:
+    flash('Show starting at' + request.form['start_time'] + ' was successfully listed!')
   return render_template('pages/home.html')
 
 @app.errorhandler(404)

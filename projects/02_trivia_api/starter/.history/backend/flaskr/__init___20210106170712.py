@@ -16,6 +16,7 @@ def get_categories_dict(categories):
   categories_dict = {}
   for category in categories:
     categories_dict[category.id] = category.type.lower()
+  print(categories_dict)
   return(categories_dict)
 
 
@@ -68,37 +69,28 @@ def create_app(test_config=None):
 
   @app.route('/questions/<int:question_id>', methods=['DELETE'])
   def delete_question(question_id):
+    print(question_id, 'id in backend')
     try:
-      question = Question.query.filter(Question.id == question_id).one_or_none()
+      question = Question.query.filter(
+          Question.id == question_id).one_or_none()
+
       if question is None:
-        abort(404)
+          abort(404)
 
       question.delete()
-      return get_questions()
-      
+      questions = Question.query.order_by(Question.id).all()
+      current_questions = paginate_questions(request, questions)
+      if(len(current_questions) == 0):
+          abort(404)
+      categories = Category.query.order_by(Category.id).all()
+      return jsonify({
+          'success': True,
+          'questions': current_questions,
+          'total_questions': len(questions),
+          'categories': get_categories_dict(categories),
+      })
     except:
-      abort(422)
-
-  
-  @app.route('/questions', methods=['POST'])
-  def create_question():
-    body = request.get_json()
-
-    new_question = body.get('question')
-    new_answer = body.get('answer')
-    new_difficulty = body.get('difficulty')
-    new_category = body.get('category')
-
-    try:
-      question = Question(question=new_question, answer=new_answer, difficulty=new_difficulty, category=new_category)
-      question.insert()
-
-      return get_questions()
-
-    except:
-      abort(422)
-
-
+        abort(422)
 
   '''
 @TODO:
@@ -144,11 +136,11 @@ and shown whether they were correct or not.
 '''
   @app.errorhandler(HTTPException)
   def handle_exception(e):
-    return jsonify({
-      "success": False,
-      "error": e.code,
-      "message": e.name
-    }), e.code
+      return jsonify({
+          "success": False,
+          "error": e.code,
+          "message": e.name
+      }), e.code
 
   '''
 @TODO:

@@ -16,6 +16,7 @@ def get_categories_dict(categories):
   categories_dict = {}
   for category in categories:
     categories_dict[category.id] = category.type.lower()
+  print(categories_dict)
   return(categories_dict)
 
 
@@ -38,67 +39,60 @@ def create_app(test_config=None):
 
   @app.after_request
   def after_request(response):
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, DELETE')
-    return response
+      response.headers.add('Access-Control-Allow-Headers',
+                            'Content-Type,Authorization,true')
+      response.headers.add('Access-Control-Allow-Methods',
+                            'GET, POST, DELETE')
+      return response
 
   @app.route('/categories', methods=['GET'])
   def get_categories():
-    categories = Category.query.order_by(Category.id).all()
-    if(len(categories) == 0):
-      abort(404)
-    return jsonify({
-      'success': True,
-      'categories': get_categories_dict(categories)
-    })
+      categories = Category.query.order_by(Category.id).all()
+      if(len(categories) == 0):
+          abort(404)
+      return jsonify({
+          'success': True,
+          'categories': get_categories_dict(categories)
+      })
 
   @app.route('/questions', methods=['GET'])
   def get_questions():
-    questions = Question.query.order_by(Question.id).all()
-    current_questions = paginate_questions(request, questions)
-    if(len(current_questions) == 0):
-      abort(404)
-    categories = Category.query.order_by(Category.id).all()
-    return jsonify({
-      'success': True,
-      'questions': current_questions,
-      'total_questions': len(questions),
-      'categories': get_categories_dict(categories),
-    })
+      questions = Question.query.order_by(Question.id).all()
+      current_questions = paginate_questions(request, questions)
+      if(len(current_questions) == 0):
+          abort(404)
+      categories = Category.query.order_by(Category.id).all()
+      return jsonify({
+          'success': True,
+          'questions': current_questions,
+          'total_questions': len(questions),
+          'categories': get_categories_dict(categories),
+      })
 
   @app.route('/questions/<int:question_id>', methods=['DELETE'])
   def delete_question(question_id):
-    try:
-      question = Question.query.filter(Question.id == question_id).one_or_none()
-      if question is None:
-        abort(404)
+      print(question_id, 'id in backend')
+      try:
+          question = Question.query.filter(
+              Question.id == question_id).one_or_none()
 
-      question.delete()
-      return get_questions()
-      
-    except:
-      abort(422)
+          if question is None:
+              abort(404)
 
-  
-  @app.route('/questions', methods=['POST'])
-  def create_question():
-    body = request.get_json()
-
-    new_question = body.get('question')
-    new_answer = body.get('answer')
-    new_difficulty = body.get('difficulty')
-    new_category = body.get('category')
-
-    try:
-      question = Question(question=new_question, answer=new_answer, difficulty=new_difficulty, category=new_category)
-      question.insert()
-
-      return get_questions()
-
-    except:
-      abort(422)
-
-
+          question.delete()
+          questions = Question.query.order_by(Question.id).all()
+          current_questions = paginate_questions(request, questions)
+          if(len(current_questions) == 0):
+              abort(404)
+          categories = Category.query.order_by(Category.id).all()
+          return jsonify({
+              'success': True,
+              'questions': current_questions,
+              'total_questions': len(questions),
+              'categories': get_categories_dict(categories),
+          })
+      except:
+          abort(422)
 
   '''
 @TODO:
@@ -144,11 +138,11 @@ and shown whether they were correct or not.
 '''
   @app.errorhandler(HTTPException)
   def handle_exception(e):
-    return jsonify({
-      "success": False,
-      "error": e.code,
-      "message": e.name
-    }), e.code
+      return jsonify({
+          "success": False,
+          "error": e.code,
+          "message": e.name
+      }), e.code
 
   '''
 @TODO:

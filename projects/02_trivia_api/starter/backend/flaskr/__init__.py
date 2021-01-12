@@ -95,6 +95,9 @@ def create_app(test_config=None):
     new_difficulty = body.get('difficulty')
     new_category = body.get('category')
 
+    if not new_question or not new_answer or not new_category or not new_difficulty:
+      abort(422)
+
     try:
       question = Question(question=new_question, answer=new_answer, difficulty=new_difficulty, category=new_category)
       question.insert()
@@ -144,7 +147,6 @@ def create_app(test_config=None):
     body = request.get_json()
     try:
       previous_questions = body.get('previous_questions')
-      print('previous questions', previous_questions)
       quiz_category = body.get('quiz_category')['id']
 
       if previous_questions is None or quiz_category is None:
@@ -158,7 +160,6 @@ def create_app(test_config=None):
       if len(questions) > 0:
         current_question = random.choice(questions)
       
-      print('current question', current_question)
 
       return jsonify({
         'success': True,
@@ -201,7 +202,22 @@ def create_app(test_config=None):
     return jsonify({
       "success": False,
       "error": e.code,
-      "message": e.name
+      # "message": e.name
     }), e.code
+
+  # @app.errorhandler(HTTPException)
+  # def handle_exception(e):
+  #   print(e)
+  #   """Return JSON instead of HTML for HTTP errors."""
+  #   # start with the correct headers and status code from the error
+  #   response = e.get_response()
+  #   # replace the body with JSON
+  #   response.data = json.dumps({
+  #       "code": e.code,
+  #       "name": e.name,
+  #       "description": e.description,
+  #   })
+  #   response.content_type = "application/json"
+  #   return response
 
   return app

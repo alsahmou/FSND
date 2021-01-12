@@ -125,6 +125,7 @@ def create_app(test_config=None):
     })
 
 
+
   @app.route('/categories/<int:category_id>/questions', methods=['GET'])
   def get_questions_by_category(category_id):
     category = Category.query.get(category_id)
@@ -202,7 +203,7 @@ def create_app(test_config=None):
     return jsonify({
       "success": False,
       "error": e.code,
-      # "message": e.name
+      "message": e.name
     }), e.code
 
   # @app.errorhandler(HTTPException)

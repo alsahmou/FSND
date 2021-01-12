@@ -86,7 +86,7 @@ class TriviaTestCase(unittest.TestCase):
             'question': 'Question',
             'answer': 'Answer',
             'difficulty': 1,
-            'category': 2,
+            'category': int(2),
         }
 
         res = self.client().post('/questions/submit', json=new_question)
@@ -114,7 +114,7 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_search_questions_valid(self):
         """ Valid question search """
-        search_term = 'Question'
+        search_term = 'e'
         res = self.client().post('/questions/search', json={'searchTerm': search_term})
         data = json.loads(res.data)
 
@@ -134,19 +134,28 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_get_questions_by_category_valid(self):
         """ Valid category questions """
-        category_id = 2
-        res = self.client().get('/categories/2/questions')
+        id = int(2)
+        res = self.client().get(f'/categories/{id}/questions')
         data = json.loads(res.data)
+        message = 'res is {0} , data is {1}'
 
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 200, message.format(res, data))
         self.assertEqual(data['success'], True)
         self.assertTrue(data['total_questions'])
         self.assertTrue(len(data['questions']))
 
 
 
-    # def test_get_questions_by_category_invalid(self):
-    #     """ Invalid category questios """
+
+    def test_get_questions_by_category_invalid(self):
+        """ Invalid category questios """
+        id = int(50000000000)
+        res = self.client().get(f'/categories/{id}/questions')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(data['success'], False)
+        
 
     def test_play_quiz_all_categories(self):
         """ All categories quiz """
@@ -170,48 +179,44 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data['question'])
 
 
-    # def test_play_quiz_valid_category(self):
-    #     """ Valid category quiz """
+    def test_play_quiz_valid_category(self):
+        """ Valid category quiz """
 
-    #     res = self.client().get('/questions')
-    #     data = json.loads(res.data)
+        res = self.client().get('/questions')
+        data = json.loads(res.data)
 
-    #     # Without a previous question 
-    #     res = self.client().post('/quizzes/play', json={'previous_questions':[] , 'quiz_category':{'id':1}})
-    #     data = json.loads(res.data)
-    #     self.assertEqual(res.status_code, 200)
-    #     self.assertEqual(data['success'], True)
-    #     self.assertTrue(data['question'])
+        # Without a previous question 
+        res = self.client().post('/quizzes/play', json={'previous_questions':[] , 'quiz_category':{'id':2}})
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['question'])
 
-    #      # With a previous question
-    #     question = Question.query.first()
-    #     res = self.client().post('/quizzes/play', json={'previous_questions':[question.id] , 'quiz_category':{'id':1}})
-    #     data = json.loads(res.data)
-    #     self.assertEqual(res.status_code, 200)
-    #     self.assertEqual(data['success'], True)
-    #     self.assertTrue(data['question'])
+        # With a previous question
+        question = Question.query.first()
+        res = self.client().post('/quizzes/play', json={'previous_questions':[question.id] , 'quiz_category':{'id':2}})
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['question'])
 
 
-    # def test_play_quiz_valid_category(self):
-    #     """ Invalid category quiz """
+    def test_play_quiz_invalid_category(self):
+        """ Invalid category quiz """
 
-    #     res = self.client().get('/questions')
-    #     data = json.loads(res.data)
+        res = self.client().get('/questions')
+        data = json.loads(res.data)
 
-    #     # Without a previous question 
-    #     res = self.client().post('/quizzes/play', json={'previous_questions':[] , 'quiz_category':{'id':20000}})
-    #     data = json.loads(res.data)
-    #     self.assertEqual(res.status_code, 200)
-    #     self.assertEqual(data['success'], False)
-    #     self.assertFalse(data['question'])
+        # Without a previous question 
+        res = self.client().post('/quizzes/play', json={'previous_questions':[] , 'quiz_category':{'id':20000}})
+        data = json.loads(res.data)
+        self.assertFalse(data['question'])
 
-    #      # With a previous question
-    #     question = Question.query.first()
-    #     res = self.client().post('/quizzes/play', json={'previous_questions':[question.id] , 'quiz_category':{'id':20000}})
-    #     data = json.loads(res.data)
-    #     self.assertNotEqual(res.status_code, 200)
-    #     self.assertEqual(data['success'], False)
-    #     self.assertFalse(data['question'])
+        # With a previous question
+        question = Question.query.first()
+        res = self.client().post('/quizzes/play', json={'previous_questions':[question.id] , 'quiz_category':{'id':20000}})
+        data = json.loads(res.data)
+        self.assertFalse(data['question'])
 
         
 

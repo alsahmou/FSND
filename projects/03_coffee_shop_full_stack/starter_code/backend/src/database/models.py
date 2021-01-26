@@ -7,6 +7,8 @@ database_filename = "database.db"
 project_dir = os.path.dirname(os.path.abspath(__file__))
 database_path = "sqlite:///{}".format(os.path.join(project_dir, database_filename))
 
+# print(database_path, 'Is the DB Path')
+
 db = SQLAlchemy()
 
 '''
@@ -28,6 +30,16 @@ db_drop_and_create_all()
 def db_drop_and_create_all():
     db.drop_all()
     db.create_all()
+    # print('DB Created')
+
+def db_init():
+    default_drinks = [{'title': 'water', 'recipe':json.dumps([{'color': 'blue', 'name': 'water', 'parts': 1}])},
+    {'title': 'tea', 'recipe':json.dumps([{'color': 'red', 'name': 'tea', 'parts': 2}])},
+    {'title': 'coffee', 'recipe':json.dumps([{'color': 'black', 'name': 'coffee', 'parts': 2}])}]
+    for drink in default_drinks:
+        drink = Drink(title=drink['title'], recipe=drink['recipe'])
+        db.session.add(drink)
+        db.session.commit()
 
 '''
 Drink

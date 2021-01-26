@@ -3,8 +3,9 @@ from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 
-from .database.models import db_drop_and_create_all, setup_db, Drink
+from .database.models import db_drop_and_create_all, setup_db, Drink, db_init
 from .auth.auth import AuthError, requires_auth
 
 app = Flask(__name__)
@@ -16,9 +17,58 @@ CORS(app)
 !! NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
 !! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 '''
-# db_drop_and_create_all()
+
+db_drop_and_create_all()
+db_init()
 
 ## ROUTES
+
+# def get_drinks_dict(drinks):
+#   drinks_dict = {}
+#   for drink in drinks:
+#     drinks_dict[drink.id] = drink.title.lower()
+#   return(drinks_dict)
+
+
+
+# @app.route('/drinks', methods=['GET'])
+# def get_drinks():
+#     print('getting drinks')
+#     drinks = Drink.query.order_by(Drink.id).all()
+#     # print('Drinks are', drinks)
+#     # if(len(drinks) == 0):
+#     #   abort(404)
+#     return jsonify({
+#         'success': True,
+#         'drinks':[drink.short() for drink in drinks]
+
+#     })
+
+# @app.route('/drinks',methods=['GET'])
+# def get_drinks():
+#     '''
+#     GET /drinks
+#         it should be a public endpoint
+#         it should contain only the drink.short() data representation
+#     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
+#         or appropriate status code indicating reason for failure
+#     '''
+#     drinks = Drink.query.order_by(Drink.id).all()
+#     print(drinks)
+#     return jsonify({
+#             'success':True,
+#             'drinks':[drink for drink in drinks]
+#             })
+
+@app.route('/drinks', methods=['GET'])
+def get_drinks():
+    drinks = Drink.query.order_by(Drink.id).all()
+    if len(drinks) == 0:
+        abort(404)
+    return jsonify({
+        'success': True,
+        'drinks': [drink.short() for drink in drinks]
+    })
 '''
 @TODO implement endpoint
     GET /drinks
@@ -29,6 +79,16 @@ CORS(app)
 '''
 
 
+@app.route('/drinks-detail', methods=['GET'])
+def get_drinks_details():
+    drinks = Drink.query.order_by(Drink.id).all()
+    if len(drinks) == 0:
+        abort(404)
+    return jsonify({
+        'sucess': True,
+        'drinks': [drink.long() for drink in drinks]
+    })
+
 '''
 @TODO implement endpoint
     GET /drinks-detail
@@ -38,6 +98,28 @@ CORS(app)
         or appropriate status code indicating reason for failure
 '''
 
+@app.route('/drinks', methods=['POST'])
+def create_drink():
+    try:
+        body = request.get_json()
+        title = body.get('title', None)
+        recipe = body.get('recipe', None)
+
+        if recipe is None or title is None:
+            abort(422)
+        
+        if not validate_recipe(recipe):
+            abort(422)
+
+        drink = Drink(title=title, recipe=recipe)
+        drink.insert()
+        return jsonify({
+            'success': True,
+            'drinks': drink
+        })
+
+    except:
+        abort(422)
 
 '''
 @TODO implement endpoint
@@ -74,6 +156,21 @@ CORS(app)
         or appropriate status code indicating reason for failure
 '''
 
+@app.route('/drinks/<int:id>', methods=['DELETE'])
+def delete_drink(id):
+    try:
+      drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
+      if drink is None:
+        abort(404)
+      else:
+        drink.delete()
+        return jsonify({
+            'success': True,
+            'delete': id
+        })
+    except:
+        abort(422)
+
 
 ## Error Handling
 '''
@@ -108,3 +205,11 @@ def unprocessable(error):
 @TODO implement error handler for AuthError
     error handler should conform to general task above 
 '''
+
+@app.errorhandler(HTTPException)
+def handle_exception(e):
+    return jsonify({
+      "success": False,
+      "error": e.code,
+      "message": e.name
+    }), e.code

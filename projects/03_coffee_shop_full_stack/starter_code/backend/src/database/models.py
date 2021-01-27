@@ -37,6 +37,7 @@ def db_init():
     {'title': 'tea', 'recipe':json.dumps([{'color': 'red', 'name': 'tea', 'parts': 2}])},
     {'title': 'coffee', 'recipe':json.dumps([{'color': 'black', 'name': 'coffee', 'parts': 2}])}]
     for drink in default_drinks:
+        print(drink['recipe'])
         drink = Drink(title=drink['title'], recipe=drink['recipe'])
         db.session.add(drink)
         db.session.commit()
